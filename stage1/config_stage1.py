@@ -1,6 +1,6 @@
 """
 usage:
-    from config_ih1 import config
+    from config_stage1 import config
     print(config.batchSize)
 """
 
