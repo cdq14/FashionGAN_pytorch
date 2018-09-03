@@ -1,12 +1,36 @@
 import random
 
+import h5py
+import numpy as np
 import torch
-from scipy import signal
+from scipy import signal, io as scipyio
 
 from config_stage1 import config
 
 
-class MyDataLoader:
+class AllDataLoader:
+    def loadata(self):
+        ind_mat_file = scipyio.loadmat('../data_release/benchmark/ind.mat')
+        train_ind = ind_mat_file['train_ind']  # type numpy.ndarray , train_ind.shape = 70000 * 1
+
+        h5file = h5py.File('../data_release/supervision_signals/G2.h5', 'r')
+        ih = h5file['/ih']  # type h5py._hl.dataset.Dataset shape (78979, 3, 128, 128)
+        ih = np.array(ih).transpose((0, 1, 3, 2))  # numpy.ndarray (78979, 3, 128, 128)
+
+        ih_mean = h5file['/ih_mean']  # type h5py._hl.dataset.Dataset shape (3, 128, 128)
+        ih_mean = np.array(ih_mean).reshape(1, 3, 128, 128).transpose((0, 1, 3, 2))  # numpy.ndarray (1, 3, 128, 128)
+
+        b_ = h5file['/b_']
+        b_ = np.array(b_).transpose((0, 1, 3, 2))  # numpy.ndarray  (78979, 1, 128, 128)
+
+        hn2_mat_file = scipyio.loadmat('../data_release/test_phase_inputs/encode_hn2_rnn_100_2_full.mat')  # keys: hn2
+        text = hn2_mat_file['hn2']
+        text = np.ascontiguousarray(text)
+
+        return train_ind, ih, ih_mean, b_, text
+
+
+class BatchDataLoader:
     def __init__(self, images, text, b_, train_ind):
         assert isinstance(images, torch.Tensor) and isinstance(text, torch.Tensor) and isinstance(b_,
                                                                                                   torch.Tensor) and isinstance(
