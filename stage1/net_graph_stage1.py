@@ -1,16 +1,6 @@
 import torch
 import torch.nn as nn
 
-
-def weights_init_normal(m):
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        torch.nn.init.normal_(m.weight.data, 0.0, 0.02 / 16)
-    elif classname.find('BatchNorm2d') != -1:
-        torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
-        torch.nn.init.constant_(m.bias.data, 0.0)
-
-
 nt_input = 100
 nt = 20
 nz = 80
@@ -18,6 +8,22 @@ ndf = 64
 ngf = 64
 ncondition = 3
 nc = 3
+
+
+def bias_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        torch.nn.init.constant_(m.bias.data, 0.0)
+
+
+def weights_init_normal(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        torch.nn.init.normal_(m.weight.data, 0.0, 0.02 / 16)
+        torch.nn.init.constant_(m.bias.data, 0.0)
+    elif classname.find('BatchNorm2d') != -1:
+        torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
+        torch.nn.init.constant_(m.bias.data, 0.0)
 
 
 class Generator(nn.Module):

@@ -3,21 +3,26 @@ import torch.utils.data as Data
 
 from config_stage1 import config
 from mydata import BatchDataLoader, AllDataLoader
-from net_graph_stage1 import Generator, Discriminator, weights_init_normal
+from net_graph_stage1 import Generator, Discriminator, weights_init_normal, bias_init
 from pytorchutils.dispSurrogate import dispSurrogate
 
+cuda = True if torch.cuda.is_available() else False
 torch.backends.cudnn.benchmark = True  # use cudnn to speed up
 torch.cuda.set_device(5)  # set GPU id
-
-train_ind, ih, ih_mean, b_, text = AllDataLoader.loadata()
 
 # loss function
 criterion = torch.nn.BCELoss()
 criterionAE = torch.nn.L1Loss()
 
+# Initialize generator and discriminator
 G = Generator()
 D = Discriminator()
 
+if cuda:
+    G.cuda()
+    D.cuda()
+
+# Initialize weights
 G.apply(weights_init_normal)
 D.apply(weights_init_normal)
 
@@ -25,12 +30,14 @@ D.apply(weights_init_normal)
 optimizer_G = torch.optim.Adam(G.parameters(), lr=config.lr, betas=(config.beta1, config.beta2))
 optimizer_D = torch.optim.Adam(D.parameters(), lr=config.lr, betas=(config.beta1, config.beta2))
 
+# noise and label
 noise = torch.Tensor(config.batchSize, config.nz, 1, 1)
 label = torch.Tensor(config.batchSize, 1, 1, 1)
 real_label = 1
 fake_label = 0
 
-
+# datasets
+train_ind, ih, ih_mean, b_, text = AllDataLoader.loadata()
 index_dataset = Data.TensorDataset(torch.Tensor(train_ind))
 index_loader = Data.DataLoader(dataset=index_dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
 batch_data_loader = BatchDataLoader(ih, text, b_, train_ind)
@@ -40,11 +47,13 @@ _lambda = 100
 for epoch in range(config.n_epochs):
     for step, inds in enumerate(index_loader):
 
-        #### init G and D
+        # train D
+        D.apply(bias_init)
+        # G.apply(bias_init)
+        D.zero_grad()
 
-        # the dataset of index_loader is a list,so it return a list of data.
+        # prepare data. The dataset of index_loader is a list,so it return a list of data.
         index_list = [int(inds[0][i][0]) for i in range(config.batch_size)]
-
         noise.normal_(0, 1)
         input, condition, input_wrong, condition_wrong, encode = batch_data_loader.getData()
         fake = G.forward(noise, encode, condition)
@@ -74,6 +83,11 @@ for epoch in range(config.n_epochs):
         D.backward({input, encode, condition}, de_do)
 
         errD = (errD_real + errD_wrong + errD_fake) / 2
+
+        # train G
+        # D.apply(bias_init)
+        G.apply(bias_init)
+        G.zero_grad()
 
         output = D.output
         label.fill_(real_label)

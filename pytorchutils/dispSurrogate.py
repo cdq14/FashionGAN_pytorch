@@ -7,7 +7,8 @@ observe : open http://111.207.202.17:8097 in your browser
 import torch
 import visdom
 
-vis = visdom.Visdom(use_incoming_socket=False)
+vis = visdom.Visdom(use_incoming_socket=False, port=8808)
+
 assert vis.check_connection()
 
 
